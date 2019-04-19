@@ -124,7 +124,8 @@ fn sample_console(process: &mut PythonSpy,
 }
 
 
-fn sample_flame(process: &mut PythonSpy, filename: &str, config: &config::Config) -> Result<(), Error> {
+fn sample_flame(process: &mut PythonSpy, filename: &str, stacks: bool,
+                config: &config::Config) -> Result<(), Error> {
     let max_samples = config.duration * config.sampling_rate;
 
     let mut flame = flamegraph::Flamegraph::new(config.show_line_numbers);
@@ -189,14 +190,18 @@ fn sample_flame(process: &mut PythonSpy, filename: &str, config: &config::Config
     }
 
     let out_file = std::fs::File::create(filename)?;
-    flame.write(out_file)?;
-    println!("Wrote flame graph '{}'. Samples: {} Errors: {}", filename, samples, errors);
+    flame.write(out_file, stacks)?;
+    if stacks {
+        println!("Wrote intermediate stacks '{}'. Samples: {} Errors: {}", filename, samples, errors);
+    } else {
+        println!("Wrote flame graph '{}'. Samples: {} Errors: {}", filename, samples, errors);
 
-    // open generated flame graph in the browser on OSX (theory being that on linux
-    // you might be SSH'ed into a server somewhere and this isn't desired, but on
-    // that is pretty unlikely for osx) (note to self: xdg-open will open on linux)
-    #[cfg(target_os = "macos")]
-    std::process::Command::new("open").arg(filename).spawn()?;
+        // open generated flame graph in the browser on OSX (theory being that on linux
+        // you might be SSH'ed into a server somewhere and this isn't desired, but on
+        // that is pretty unlikely for osx) (note to self: xdg-open will open on linux)
+        #[cfg(target_os = "macos")]
+        std::process::Command::new("open").arg(filename).spawn()?;
+    }
 
     Ok(())
 }
@@ -219,7 +224,9 @@ fn pyspy_main() -> Result<(), Error> {
             println!("{}\nPython version {}", process.process.exe()?, process.version);
             print_traces(&process.get_stack_traces()?, true);
         } else if let Some(ref flame_file) = config.flame_file_name {
-            sample_flame(&mut process, &flame_file, &config)?;
+            sample_flame(&mut process, &flame_file, false, &config)?;
+        } else if let Some(ref stacks_file) = config.stacks_file_name {
+            sample_flame(&mut process, &stacks_file, true, &config)?;
         } else {
             sample_console(&mut process, &format!("pid: {}", pid), &config)?;
         }
@@ -243,7 +250,9 @@ fn pyspy_main() -> Result<(), Error> {
         let result = match PythonSpy::retry_new(command.id() as remoteprocess::Pid, &config, 8) {
             Ok(mut process) => {
                 if let Some(ref flame_file) = config.flame_file_name {
-                    sample_flame(&mut process, &flame_file, &config)
+                    sample_flame(&mut process, &flame_file, false, &config)
+                } else if let Some(ref stacks_file) = config.stacks_file_name {
+                    sample_flame(&mut process, &stacks_file, true, &config)
                 } else {
                     sample_console(&mut process, &subprocess.join(" "), &config)
                 }

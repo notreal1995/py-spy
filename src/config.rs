@@ -9,6 +9,7 @@ pub struct Config {
 
     pub dump: bool,
     pub flame_file_name: Option<String>,
+    pub stacks_file_name: Option<String>,
 
     pub non_blocking: bool,
     pub show_line_numbers: bool,
@@ -54,6 +55,12 @@ impl Config {
                 .value_name("flamefile")
                 .help("Generate a flame graph and write to a file")
                 .takes_value(true))
+            .arg(Arg::with_name("stacks")
+                .short("s")
+                .long("stacks")
+                .value_name("stacksfile")
+                .help("Write intermediate flame graph stacks to a file")
+                .takes_value(true))
             .arg(Arg::with_name("rate")
                 .short("r")
                 .long("rate")
@@ -83,6 +90,7 @@ impl Config {
 
         // what to generate
         let flame_file_name = matches.value_of("flame").map(|f| f.to_owned());
+        let stacks_file_name = matches.value_of("stacks").map(|f| f.to_owned());
         let dump = matches.occurrences_of("dump") > 0;
 
         // how to sample
@@ -97,7 +105,7 @@ impl Config {
             native = false;
         }
 
-        Ok(Config{pid, python_program, dump, flame_file_name,
+        Ok(Config{pid, python_program, dump, flame_file_name, stacks_file_name,
                   sampling_rate, duration,
                   show_line_numbers, non_blocking, native})
     }
