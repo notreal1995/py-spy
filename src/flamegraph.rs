@@ -77,7 +77,7 @@ impl Flamegraph {
                 // writeln!(w, " {}, ts:{:?}", v, n);
                 writeln!(w, "{}", n)?;
                 w.write_all(&k)?;
-                writeln!(w, " {}", v)?;
+                writeln!(w, "\t{}", v)?;
             }
             Ok(())
         } else {
