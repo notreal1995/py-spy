@@ -32,6 +32,7 @@ use std::io::Write;
 use std::fs::File;
 use std::path::Path;
 use std::process::{Command, Stdio};
+use std::time::SystemTime;
 
 use failure::{Error, ResultExt};
 use tempdir;
@@ -72,6 +73,9 @@ impl Flamegraph {
     pub fn write(&self, mut w: File, stacks: bool) -> Result<(), Error> {
         if stacks {
             for (k, v) in &self.counts {
+                let n = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_micros();
+                // writeln!(w, " {}, ts:{:?}", v, n);
+                writeln!(w, "{}", n)?;
                 w.write_all(&k)?;
                 writeln!(w, " {}", v)?;
             }
